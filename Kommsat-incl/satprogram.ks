@@ -1,5 +1,5 @@
 function AlignToSun {
-  lock steering to lookdirup(north:vector,Sun:position) + R(0,0,90).
+  lock steering to lookdirup(north:vector,Sun:position).
 }
 
 function aneta {
@@ -54,8 +54,9 @@ function satprogram {
   }
   if satmode = 4 {
     waitconnect().
-    require("","crcfltdn.ks").
-    deletepath("crcfltdn.ks").
+    require("Kommsat-incl","fltper.ks").
+    fltper(7200).
+    deletepath("fltper.ks").
     nextmode().
   }
   if satmode = 5 {
