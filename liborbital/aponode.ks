@@ -2,7 +2,7 @@ function aponode {
   parameter newapsis is apoapsis.
 
   print "T+" + round(missiontime) + " Maneuver at Ap. Changing orbit around " + body:name + ":".
-  print round(periapsis/1000,1) + "x" + round(apoapsis/1000,1) + " km -> " + round( min(apoapsis,newapsis)/1000,1) + "x" + round( max(apoapsis,newapsis)/1000,1) + " km ".
+  print round(apoapsis/1000,1) + "x" + round(periapsis/1000,1) + " km -> " + round(apoapsis/1000,1) + "x" + round(newapsis/1000,1) + " km ".
 
   local a0 to orbit:semimajoraxis.
   local Ra to body:radius + apoapsis.
@@ -13,7 +13,7 @@ function aponode {
   set deltav to v1 - Va.
   
   print "Burn at Ap: " + round(Va) + " -> " + round(v1) + "m/s".
-  local nd to node(time:seconds + eta:apoapsis, 0, 0, deltav).
-  add nd.
+
+  add node(time:seconds + eta:apoapsis, 0, 0, deltav).
   print "T+" + round(missiontime) + " Node created.".
 }
