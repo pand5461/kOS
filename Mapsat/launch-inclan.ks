@@ -1,4 +1,4 @@
-require("liborbital","orbdir.ks").
+require("liborbital","annorm.ks").
 require("liborbital","aponode.ks").
 require("liborbital","exenode.ks").
 
@@ -15,7 +15,7 @@ function HDGctrl {
 
   local thdg to heading( xi, 0 ).
 
-  local distkm to vdot(orbdir(tlan,ti):upvector,body:position)/1000.
+  local distkm to vdot(annorm(tlan,ti):upvector,body:position)/1000.
 
   local hdg to xi + hdgpid:update(time:seconds, distkm).
 
