@@ -20,4 +20,4 @@ function require {
     runpath(fn).
   }
 }
-require("MapSat-K","satprogram.ks").
+require("Mapsat","satprogram-inclan.ks").
