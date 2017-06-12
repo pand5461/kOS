@@ -15,7 +15,7 @@ function HDGctrl {
 
   local thdg to heading( xi, 0 ).
 
-  local distkm to vdot(DirANNorm(tlan,ti):upvector,body:position)/1000.
+  local distkm to vdot(orbdir(tlan,ti):upvector,body:position)/1000.
 
   local hdg to xi + hdgpid:update(time:seconds, distkm).
 
