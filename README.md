@@ -38,4 +38,6 @@ Missions:
   * Moona Pol - polar orbiter with SCANSat scanner
   * Moona 6 - lander (needs coordinates to land at)
 
-* L3project - Soviet-themed manned Munar landing (parts from Home-Grown Rockets are highly customized, so no craft file, sorry)
+* L3project - Soviet-themed manned Munar landing
+ * video: https://youtu.be/KP_vmEz1-34
+ * parts from Home-Grown Rockets are highly customized, so no craft file, sorry
