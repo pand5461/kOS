@@ -39,5 +39,5 @@ Missions:
   * Moona 6 - lander (needs coordinates to land at)
 
 * L3project - Soviet-themed manned Munar landing
- * video: https://youtu.be/KP_vmEz1-34
- * parts from Home-Grown Rockets are highly customized, so no craft file, sorry
+  * video: https://youtu.be/KP_vmEz1-34
+  * parts from Home-Grown Rockets are highly customized, so no craft file, sorry
