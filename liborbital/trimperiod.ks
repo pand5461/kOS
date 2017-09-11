@@ -6,15 +6,15 @@ function TrimPeriod {
   lock steering to velocity:orbit*dt.
   list engines in elist.
   local thrustlim to list().
-  // set thrustlimit to max 0.5 m/s^2 acceleration
+  // set thrustlimit to max 0.05 m/s^2 acceleration
   from { local i to 0. } until i=elist:length step { set i to i+1. } do {
     thrustlim:add(elist[i]:thrustlimit).
-    set elist[i]:thrustlimit to 0.5*ship:mass/ship:availablethrust.
+    set elist[i]:thrustlimit to 5*ship:mass/ship:maxthrust.
   }
   wait until vang(facing:vector,velocity:orbit*dt) < 1.
   until abs( (orbit:period - WantedPeriod) / WantedPeriod ) < epsilon {
     lock throttle to min( max( abs( orbit:period - WantedPeriod ), 0.05 ), 1 ).
-    wait 0.01.
+    wait 0.
   }
   lock throttle to 0.
   // restore thrustlimits

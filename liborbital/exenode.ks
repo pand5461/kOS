@@ -1,18 +1,5 @@
 require("libwarp","warpfor.ks").
-
-function ThrustIsp {
-  local g0 to Kerbin:mu/Kerbin:radius^2.
-  list engines in el.
-  local vex to 0.
-  local ff to 0.
-  local tt to 0.
-  for e in el {
-    set ff to ff + e:availablethrust*vdot(facing:vector,e:facing:vector)/(g0*max(e:isp,0.01)).
-    set tt to tt + e:availablethrust.
-  }
-  if tt>0 set vex to tt/ff.
-  return list(tt,vex).
-}
+require("libvessel","thrustisp.ks").
 
 function exenode {
   local nd to nextnode.
@@ -22,36 +9,34 @@ function exenode {
   
   set ship:control:pilotmainthrottle to 0.
   print "T+" + tm + " Node in: " + round(nd:eta) + ", DeltaV: " + round(nd:deltav:mag).
-  local maxa to 1.
   local TIsp to ThrustIsp().
   local tt to TIsp[0].
   local vex to TIsp[1].
-  if tt = 0 { 
+  if tt = 0 {
     print "ERROR: No active engines!".
     set ship:control:pilotmainthrottle to 0.
     return.
   }
-  set dob to mass*vex/tt*(1 - constant:e^(-nd:deltav:mag/vex)).
+  local maxa to tt/mass.
+  local dob to vex / maxa * (1 - constant:e^(-nd:deltav:mag/vex)).
   print "Burn duration: " + round(dob) + " s".
-  warpfor(nd:eta-dob/2-60).
+  local dob2 to vex/maxa - vex*dob/nd:deltav:mag.
+  warpfor(nd:eta-dob2-60).
   sas off.
   rcs off.
 
   print "T+" + tm + " Turning ship to burn direction.".
-  local np to lookdirup(nd:deltav,up:vector).
-  lock steering to np.
-  wait until vang( np:vector,facing:vector ) < 0.05 and ship:angularvel:mag < 0.05.
-  warpfor(nd:eta-dob/2-7).
-  print "T+" + tm + " Burn start " + round(dob/2) + " s before node.".
-  set tset to 0.
+  lock steering to lookdirup(nd:deltav*(tt/abs(tt)),-body:position).
+  wait until vang( nd:deltav*(tt/abs(tt)),facing:vector ) < 0.05 and ship:angularvel:mag < 0.05.
+  warpfor(nd:eta-dob2-10).
+  print "T+" + tm + " Burn start " + round(dob2) + " s before node.".
+  local tset to 0.
   lock throttle to tset.
 
-  lock steering to lookdirup(nd:deltav,up:vector).
-  wait until nd:eta <= dob/2.
   local dv0 to nd:deltav.
+  wait until nd:eta <= dob2.
   until done {
-    set maxa to ship:availablethrust/mass.
-    set tset to min(nd:deltav:mag/maxa, 1).
+    set tset to min(nd:deltav:mag*mass/abs(tt), 1).
     if once and tset < 1 {
         print "T+" + tm + " Throttling down, remain dv " + round(nd:deltav:mag) + "m/s".
         set once to False.
@@ -72,8 +57,9 @@ function exenode {
   unlock steering.
   set ship:control:pilotmainthrottle to 0.
   print "T+" + tm + " Ap: " + round(apoapsis/1000,2) + " km, Pe: " + round(periapsis/1000,2) + " km".
-  print "T+" + tm + " Remaining LF: " + round(stage:liquidfuel).
+  print "T+" + tm + " Remaining LF: " + round(stage:liquidfuel,1).
   wait 1.
   remove nd.
+  unlock tm.
   unlock throttle.
 }
