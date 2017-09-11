@@ -16,16 +16,15 @@ function warpfor {
   local oldwp to wp.
   local rt to t1 - time:seconds.
   until rt <= 0 {
-    set oldwp to tw:warp.
-    set wp to bnd(round(log10(min((rt*0.356)^2,rt*100))),0,7).
-    if wp <> oldwp {
-      local minwp to min(oldwp,wp).
-      if not tw:issettled wait tw:ratelist[minwp]*0.1.
+    set wp to bnd(round(log10(min((rt*0.356)^2,rt*50))),0,7).
+    if wp <> oldwp or wp <> tw:warp {
+      if not tw:issettled wait tw:ratelist[min(oldwp,wp)]*0.1.
       set wp to bnd(wp, oldwp-1, oldwp+1).
       set tw:warp to wp.
-      print "Warp level " + tw:warp + "; remaining time " + round(rt) + "/" + round(dt).
+      if wp <> oldwp print "Warp " + tw:ratelist[wp] + "x; remaining time " + round(rt) + "/" + round(dt).
+      set oldwp to wp.
     }
-    if tw:mode <> "rails" and altitude > body:atm:height {
+    if tw:mode <> "rails" and (altitude > body:atm:height or status = "prelaunch") {
       tw:cancelwarp.
       wait until tw:issettled.
       set tw:mode to "rails".
@@ -34,4 +33,5 @@ function warpfor {
     wait 0.
     set rt to t1 - time:seconds.
   }
+  tw:cancelwarp.
 }
