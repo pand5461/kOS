@@ -1,5 +1,7 @@
 global m_pi to constant:pi.
 global m_e to constant:e.
+global m_rtd to constant:radtodeg.
+global m_dtr to constant:degtorad.
 
 function sinh {
   parameter x.
@@ -13,7 +15,8 @@ function cosh {
 
 function tanh {
   parameter x.
-  return (m_e^(2*x) - 1) / (m_e^(2*x) + 1).
+  local y to m_e^(2*x)
+  return (y - 1) / (y + 1).
 }
 
 function sign {
