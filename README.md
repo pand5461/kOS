@@ -4,7 +4,13 @@ set of kOS utilities and complete mission profiles (with craft files)
 Utilities:
 * libinput - currently only has library loader
   * require.ks - load (require) and delete (unrequire) other libraries to the vessel storage
-  
+
+* libmath - set of mathematical functions and solvers
+  * math.ks - useful mathematical functions (direct and inverse hyperbolic functions, sign, short aliases for Euler e, pi, degtorad and radtodeg)
+  * frame.ks - functions to convert coordinates between reference frames
+  * cse.ks - conic state extrapolation from arbitrary initial state
+  * lambert.ks - Lambert solver
+
 * liborbital - library for orbital operations.
   * altNodes - gives altitude (AltTA2), direction (UniPosTA2) and velocity (VelTA2) at given true anomaly, and true anomaly of ascending node (TAofAN2)
   * annorm.ks - calculate body-centric AN and normal vectors given orbital inclination and LAN
@@ -13,7 +19,6 @@ Utilities:
   * dock.ks - dock to the target port of another vessel
   * etaNodes.ks - functions to calculate time to a given true anomaly, ascending node and descending node (only for elliptic orbits)
   * exenode.ks - execute maneuver node
-  * lambert.ks - Lambert solver
   * orbdir.ks - calculate body-centric AN and normal vectors of ship's current orbit
   * trimperiod.ks - fine-tune orbital period burning prograde or retrograde
   
