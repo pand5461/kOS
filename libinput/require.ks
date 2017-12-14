@@ -1,6 +1,7 @@
 function require {
   parameter lib is "", fn is "".
-  if not exists("1:/reqlex.json") {
+  local wd to path().
+  if exists("1:/reqlex.json") = false {
     writejson(lexicon(), "1:/reqlex.json"). 
   }
   local reqlex to readjson("1:/reqlex.json").
@@ -22,38 +23,39 @@ function require {
     }
   }
   else {
-    if not reqlex:haskey(lib) {
+    if reqlex:haskey(lib) = false {
       reqlex:add(lib, list()).
     }
     local prefix to "1:/" + lib + "/".
-    local fload to False.
-    if not homeconnection:isconnected or homeconnection:delay > 2 {
+    local fhere to False.
+    if (homeconnection:isconnected = false) or homeconnection:delay > 2 {
       for fname in reqlex[lib] {
         if fname:contains(fn) {
-          runpath(prefix + fname).
-          set fload to True.
+          set fhere to exists(prefix + fname).
         }
       }
     }
-    if (homeconnection:isconnected and homeconnection:delay <= 2) or not fload {
+    if (homeconnection:isconnected and homeconnection:delay <= 2) or fhere = false {
       cd("0:/" + lib).
       list files in fl.
       for f in fl {
         if f:name:contains(fn) {
-          if not reqlex[lib]:contains(f:name) {
+          if reqlex[lib]:contains(f:name) = false {
             reqlex[lib]:add(f:name).
           }
           copypath(f:name, prefix + f:name).
           writejson(reqlex, "1:/reqlex.json").
-          runpath(prefix + f:name).
-          set fload to True.
+          set fhere to exists(prefix + f:name).
         }
       }
-      cd("1:/").
-    }
-    if not fload {
+      cd(wd).
+    }    
+    if fhere = false {
       print "ERROR: Cannot load file".
       print 1/0.
+    }
+    for fname in reqlex[lib] {
+      if fname:contains(fn) { runpath(prefix + fname). }
     }
   }
 }
@@ -63,7 +65,7 @@ function unrequire {
   local reqlex to readjson("1:/reqlex.json").
   for l in reqlex:keys {
     local it to reqlex[l]:iterator.
-    until not it:next {
+    until it:next = false {
       print it:value.
       if it:value:startswith(fn) {
         deletepath("1:/" + l + "/" + it:value).
