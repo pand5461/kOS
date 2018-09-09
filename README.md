@@ -9,6 +9,7 @@ Utilities:
   * math.ks - useful mathematical functions (direct and inverse hyperbolic functions, sign, short aliases for Euler e, pi, degtorad and radtodeg)
   * frame.ks - functions to convert coordinates between reference frames
   * cse.ks - conic state extrapolation from arbitrary initial state
+  * brent.ks - Brent-Dekker's root-finding algorithm
   * lambert.ks - Lambert solver
 
 * liborbital - library for orbital operations.
