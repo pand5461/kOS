@@ -31,10 +31,9 @@ function solv_ridders {
   until iter > MAXITER {
     set xmid to (xlo + xhi) / 2.
     set delta to rtol * (1 + abs(xmid)) / 2.
-    if (abs(xhi - xlo) < 2 * delta) {return xmid.}
     set fmid to fn(xmid).
     local r1 to fmid / flo.
-    local r2 to fneg / flo.
+    local r2 to fhi / flo.
     set denom to sqrt(r1 * r1 - r2).
 
     local dx to (xhi - xlo) * 0.5 * r1 / denom.
@@ -47,6 +46,8 @@ function solv_ridders {
    if verbose {
       print iter + ". x = " + xans + "; est_err = " + abs(xhi - xlo) / 2.
     }
+
+    if (abs(xhi - xlo) < 2 * delta) {return xans.}
     local fans to fn(xans).
     if fans = 0 { return fans. }
     if fans * fmid < 0 {
