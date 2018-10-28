@@ -1,7 +1,9 @@
+@lazyglobal off.
+
 function require {
   parameter lib is "", fn is "".
   local wd to path().
-  if exists("1:/reqlex.json") = false {
+  if not exists("1:/reqlex.json") {
     writejson(lexicon(), "1:/reqlex.json"). 
   }
   local reqlex to readjson("1:/reqlex.json").
@@ -23,41 +25,47 @@ function require {
     }
   }
   else {
-    if reqlex:haskey(lib) = false {
+    if not reqlex:haskey(lib) {
       reqlex:add(lib, list()).
     }
     local prefix to "1:/" + lib + "/".
     local fhere to False.
-    if (homeconnection:isconnected = false) or homeconnection:delay > 2 {
+    if (not homeconnection:isconnected) or homeconnection:delay > 2 {
       for fname in reqlex[lib] {
         if fname:contains(fn) {
           set fhere to exists(prefix + fname).
         }
       }
     }
-    if (homeconnection:isconnected and homeconnection:delay <= 2) or fhere = false {
+    if (homeconnection:isconnected and homeconnection:delay <= 2) or not fhere {
       cd("0:/" + lib).
+      local fl to 0.
       list files in fl.
       for f in fl {
-        if f:name:contains(fn) {
-          if reqlex[lib]:contains(f:name) = false {
-            reqlex[lib]:add(f:name).
+        if f:name:contains(fn) and f:name:endswith(".ks") {
+          local cname to f:name:replace(".ks", ".ksm").
+          if not reqlex[lib]:contains(cname) {
+            reqlex[lib]:add(cname).
           }
-          copypath(f:name, prefix + f:name).
+          compile f:name to (prefix + cname).
           writejson(reqlex, "1:/reqlex.json").
-          set fhere to exists(prefix + f:name).
+          set fhere to exists(prefix + cname).
         }
       }
       cd(wd).
-    }    
+    }
     if fhere = false {
       print "ERROR: Cannot load file".
       print 1/0.
     }
     for fname in reqlex[lib] {
-      if fname:contains(fn) { runpath(prefix + fname). }
+      if fname:contains(fn) {
+        print "Loading " + prefix + fname.
+        runpath(prefix + fname).
+      }
     }
   }
+  print "Required files loaded".
 }
 
 function unrequire {
