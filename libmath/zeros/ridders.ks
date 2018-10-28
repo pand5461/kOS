@@ -60,7 +60,7 @@ function solv_ridders {
       print iter + ". x = " + xans + "; est_err = " + abs(xhi - xlo) / 2.
     }
 
-    if (abs(dxm) <= delta) {return xans.}
+    if (abs(dxm) < delta) {return xans.}
     if abs(xans - xhi) < delta {
       set xans to xhi - sign(dxm) * delta.
     }
