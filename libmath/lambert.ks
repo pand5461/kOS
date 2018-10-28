@@ -1,112 +1,141 @@
-require("libmath", "math.ks").
+@lazyglobal off.
+require("libmath", "mglobals").
+require("libmath", "hyp").
+require("libmath/zeros", "ridders").
 
-function lambert2 {
+// The following function assumes that coordinate system is right-handed
+// and the normal to the base plane is the Z axis (V(0,0,1)).
+// To convert from the standard kOS frame, either swap :y and :z components
+// or use toIRF() function from libmath
+
+function lambert {
  // Following: Gooding, A procedure for the solution of Lambert's orbital boundary-value problem, Celestial Mechanics and Astronomy 48 (1990), 145-165
- // Der, The superior Lambert algorithm
-  parameter r0, r1, dt, mu, prg to 1, tol to 5e-7, utol to 5*tol.
-  
+ // Lancaster and Blanchard, A unified form of Lambert's theorem, NASA Technical Note D-5368
+ // PRG = if the transfer is prograde relative to the base plane
+  parameter r0, r1, dt, mu, prg to 1, tol to 1e-15, utol to 5*tol.
+
   local smu to sqrt(mu).
-  local alpha to prg * vcrs(r1, r0):y.
-  
+  local atol to 0.
+  local alphavec to (prg * vcrs(r0, r1)):normalized.
+  local alpha to alphavec:z.
+
   local psi to vang(r0, r1).
   if alpha < 0 {
     set psi to 360 - psi.
   }
   print psi.
-  
+
   local r0m to r0:mag.
   local r1m to r1:mag.
   local unir0 to r0 / r0m.
   local unir1 to r1 / r1m.
   local c to (r1 - r0):mag.
-  local uniC to (r1 - r0) / c.
   local m to r0m + r1m + c.
   local n to m - 2 * c.
-  local ism to 1 / sqrt(m).
-  local isn to 1 / sqrt(n).
-  
-  local  tau to 4 * dt * smu / m^1.5.
+
+  local tau to 8 * dt * smu / m^1.5.
   local ssign to sign(sin(psi)).
   local s to ssign * sqrt(n / m).
   local s2 to n / m.
-  local ds3 to 2 * s2 * s.
+  local qs3 to 4 * s2 * s.
   local s2fm1 to 2 * c / m. // 1 - s^2
-  
 
-  local tau_p to (2 - ds3) / 3.
+  local tau_p to (4 - qs3) / 3.
 
   local ttype to 0. // ellipse
-  if abs(tau - tau_p) < utol { set ttype to 1. } // parabola
+  if abs(tau - tau_p) < tol { set ttype to 1. } // parabola
   if tau < tau_p { set ttype to 2. } // hyperbola
-  
-  local x to ttype.
-  local z to 0.
 
-  local tau_me to arccos(s) * m_dtr + s * sqrt(s2fm1).
+  local tau_me to 2 * (arccos(s) * m_dtr + s * sqrt(s2fm1)).
 
-  local converged to false.
-  local order to 2.
-  local nmax to 10.
-  local f0 to 0.
-  local f1 to 1.
-  local f2 to 1.
-  
-  until converged {
-    if ttype <> 1 {
-      if tau < tau_me {
-        set x to tau_me * (tau_me / tau - 1).
-      }
-      else {
-        set x to sqrt((tau - tau_me) / (tau + 0.5 * tau_me)).
-      }
-    }
-    local U to 1 - x * x.
-    set z to sqrt(s2 * x * x + s2fm1).
-    local niter to 0.
-    local ratio to 1.
-  
-    until abs(ratio) < tol or niter > nmax {
-      local y to sqrt(abs(U)).
-      local f to y * (z - s * x).
-      local g to x * z + s * U.
-      local d to 0.
-      if U > utol {
-        set d to (90 - arctan(g / f)) * m_dtr.
-      }
-      else if U < -utol {
-        set d to ln(f + g).
-      }
-      if abs(U) > utol {
-        set f0 to (s * z + d / y - x) / U.
-        set f1 to (x * (3 * f0 + ds3 / z) - 2) / U.
-        set f2 to (5 * x * f1 + 3 * f0 - ds3 * s2fm1 / z^3) / U.
-      }
-      else {
-        set f0 to tau_p.
-      }
+  local get_d to {
+    parameter f, g.
+    return (90 - arctan(g / f)) * m_dtr.
+  }.
 
-      local diff to f0 - tau.
-      local rooted to (order - 1) * ((order - 1) * f1 * f1 - order * diff * f2).
-      if rooted > 0 {
-        set ratio to order * diff / (f1 * (sqrt(rooted) / abs(f1) + 1)).
-      }
-      else {
-        set ratio to diff / f1.
-      }
-      print diff / tau + "  " + x.
-      set x to x - ratio.
-      set U to 1 - x * x.
-      set z to sqrt(s2 * x * x + s2fm1).
-      set niter to niter + 1.
-    }
-    if abs(ratio) < tol set converged to true.
-    set order to order + 1.
+  local get_y to {
+    parameter U.
+    return sqrt(U).
+  }.
+
+  if ttype = 2 {
+    set get_d to {
+      parameter f, g.
+      return ln(f + g).
+    }.
+    set get_y to {
+      parameter U.
+      return sqrt(-U).
+    }.
   }
-  
-  local v to ssign * z * isn.
-  local w to x * ism.
-  local vcvec to smu * (v + w) * uniC.
-  local vr to smu * (v - w).
 
-  return lexicon("v0", vcvec + vr * unir0, "v1", vcvec - vr * unir1).
+ local function tof {
+    parameter x.
+    local U to 1 - x * x.
+    if abs(U) < utol {
+      return 0.
+    }
+    local y to get_y(U).
+    local z to sqrt(s2 * x * x + s2fm1).
+    local f to y * (z - s * x).
+    local g to x * z + s * U.
+    return 2 * (s * z + get_d(f, g) / y - x) / U - tau.
+  }
+
+  local x0 to 1.
+  local x1 to 1.
+
+  if ttype <> 1 {
+    if tau < tau_me {
+      set x0 to tau_me * (tau_me / tau - 1).
+    }
+    else {
+      set x0 to sqrt((tau - tau_me) / (tau + 0.5 * tau_me)).
+    }
+  }
+
+  local tof0 to tof(x0).
+  if ttype = 0 {
+    if tof0 < 0 {
+      set x1 to (x0 - 1) / 2.
+      local tof1 to tof(x1).
+      until tof1 >= 0 {
+        set tof0 to tof1.
+        set x0 to x1.
+        set x1 to (x0 - 1) / 2.
+        set tof1 to tof(x1).
+      }
+    }
+  }
+  else if ttype = 2 {
+    if tof0 > 0 {
+      set x1 to x0 * 2.
+      local tof1 to tof(x1).
+      until tof1 <= 0 {
+        set tof0 to tof1.
+        set x0 to x1.
+        set x1 to 2 * x1.
+        set tof1 to tof(x1).
+      }
+    }
+  }
+
+  local x to solv_ridders(tof@, x0, x1, tol).
+  local z to sqrt(s2 * x * x + s2fm1).
+  local gamma to 0.5 * smu * sqrt(m).
+  local rho to 0.
+  local ss to 0.
+  if c > 0 {
+    set rho to (r0m - r1m) / c.
+    set ss to 2 * sqrt(r0m * r1m) / c * sin(0.5 * psi).
+  }
+  local rszpx to rho * (s * z + x).
+  local szmx to s * z - x.
+
+  local vr0 to gamma * (szmx - rszpx) / r0m.
+  local vr1 to -gamma * (szmx + rszpx) / r1m.
+
+  local vt to gamma * ss * (z + s * x).
+
+  return lexicon("v0", vr0 * unir0 - vt / r0m * vcrs(alphavec, unir0), "v1", vr1 * unir1 - vt / r1m * vcrs(alphavec, unir1)).
 }

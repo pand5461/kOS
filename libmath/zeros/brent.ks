@@ -3,7 +3,7 @@
 // Coded after Press W.H. et al., Numerical Recipes, 3rd ed.
 
 function solv_brent {
-  parameter fn, x0, x1, rtol to 0.0, verbose to False.
+  parameter fn, x0, x1, rtol to 0.0, fpre to False, fcur to False, verbose to False.
 
   local MAXITER to 150.
   set rtol to max(rtol, 2^(-53)).
@@ -11,14 +11,14 @@ function solv_brent {
   local xpre to x0. // previous best approx
   local xcur to x1. // current best approx
   local xopp to xcur. // x with opposite sign to xcur
-  local fpre to fn(x0). // correspondng function values
-  local fcur to fn(x1).
+  if not fpre { set fpre to fn(x0). } // correspondng function values
+  if not fcur { set fcur to fn(x1). }
   local fopp to fcur.
   local dxpre to 0. // increment on previous iteration
   local dxcur to 0. // increment on current iteration
   local dxtry to 0. // trial increment
   local dxbin to 0. // would-be increment for binary search
-  local dxmax to 1.
+  local adxtry to 0.
   local delta to rtol. // tolerable absolute uncertainty
   local rco to 1. // ratio fcur / fopp
   local rcp to 1. // ratio fcur / fpre
@@ -44,28 +44,21 @@ function solv_brent {
 
   local function interpolate {
     set rcp to fcur / fpre.
-    if (xpre = xopp) {lininterp().}
-    else {iquadinterp().}
-  }
-
-  local function lininterp {
-    set interptype to " secant ".
-    set dxtry to 2 * dxbin * rcp / (rcp - 1).
-  }
-
-  local function iquadinterp {
-    set interptype to " inverse quadratic ".
-    set rpo to fpre / fopp.
-    set rco to fcur / fopp.
-    local dxnum to rcp * (2 * dxbin * rpo * (rpo - rco) - (xcur - xpre) * (rco - 1)).
-    local dxden to (rpo - 1) * (rco - 1) * (rcp - 1).
-    set dxtry to -dxnum / dxden.
-  }
-
-  local function acceptinterp {
-    if verbose {print "Using" + interptype + "interpolation".}
-    set dxpre to dxcur.
-    set dxcur to dxtry.
+    if (xpre = xopp) {
+      // linear interpolation
+      set interptype to " secant ".
+      set dxtry to 2 * dxbin * rcp / (rcp - 1).
+    }
+    else {
+      // inverse quadratic interpolation
+      set interptype to " inverse quadratic ".
+      set rpo to fpre / fopp.
+      set rco to fcur / fopp.
+      local dxnum to rcp * (2 * dxbin * rpo * (rpo - rco) - dxcur * (rco - 1)).
+      local dxden to (rpo - 1) * (rco - 1) * (rcp - 1).
+      set dxtry to -dxnum / dxden.
+    }
+    set adxtry to 2 * abs(dxtry).
   }
 
   local function usebisect {
@@ -94,17 +87,20 @@ function solv_brent {
 
     set delta to rtol * (1 + abs(xcur)) * 0.5.
     set dxbin to (xopp - xcur) / 2.
-    set dxmax to min(3 * abs(dxbin) - delta, abs(dxpre)).
 
     if verbose {print "x = " + xcur +"; est_err = " + 2 * abs(dxbin).}
-    if ((fcur = 0) or (abs(dxbin) < delta)) {
+    if ((fcur = 0) or (abs(dxbin) <= delta)) {
       if verbose {print "SOLV_BRENT converged in " + iter + " iterations".}
-      return xcur.}
+      return xcur.
+    }
 
     if ((abs(dxpre) >= delta) and (abs(fcur) < abs(fpre))) {
       interpolate().
-      if (2 * abs(dxtry) < dxmax) and (dxtry * dxbin > 0) {
-        acceptinterp().
+      if (adxtry < 3 * abs(dxbin) - delta) and (adxtry < abs(dxpre)) {
+        // accept interpolation
+        if verbose {print "Using" + interptype + "interpolation".}
+        set dxpre to dxcur.
+        set dxcur to dxtry.
       }
       else {
         usebisect().
@@ -128,3 +124,4 @@ function solv_brent {
   print "WARNING: SOLV_BRENT exceeded maximum number of iterations.".
   return xcur.
 }
+
