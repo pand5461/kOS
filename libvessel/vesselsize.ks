@@ -1,16 +1,13 @@
+@lazyglobal off.
 function vesselsize {
-  parameter v.
+  // computes 4x maximal separation of vessel part from its CoM
+  parameter obj.
 
-  local vparts to v:parts.
-  local vcenter to V(0,0,0).
-
-  for p in vparts { set vcenter to vcenter+v:position. }
-  set vcenter to vcenter/vparts:length.
-  
-  set dmax to 0.
+  local vparts to obj:parts.
+  local dmax to 0.
   for p in vparts {
-    set dmax to max(dmax, (p:position - vcenter):sqrmagnitude).
+    set dmax to max(dmax, (p:position - obj:position):sqrmagnitude).
   }
-  
+
   return sqrt(dmax)*4+1.
 }
