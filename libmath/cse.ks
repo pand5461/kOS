@@ -22,7 +22,8 @@ function SnC_hyp {
   }
   local saz to sqrt(-z).
   local x to m_e^saz.
-  return lex("S", (saz - 0.5 * (x - 1 / x)) / (saz * z), "C", (1 - 0.5 * (x + 1 / x)) / z).
+  local sh to 0.5 * (x - 1 / x).
+  return lex("S", (saz - sh) / (saz * z), "C", (1 - sh - 1 / x) / z).
 }
 
 // Conic State Extrapolation Routine
@@ -42,7 +43,16 @@ function CSER {
   local rvr0s to vdot(r0, v0) / sqrt(mu * rscale).
   local ecc to sqrt(1 - alpha * (v2s - rvr0s * rvr0s)).
 
-  if (not x0) { set x0 to dts * abs(alpha). }
+  if (not x0) {
+    if alpha > 0 {
+      set x0 to dts * alpha.
+    }
+    else {
+      local s to sign(dts).
+      local r to sqrt(-1 / alpha).
+      set x0 to s * r * ln(- 2 * dts * alpha / (r0v0s + s * r * (1 - alpha))).
+    }
+  }
 
   local SnC to SnC_ell@.
   if alpha < 0 {
@@ -77,7 +87,7 @@ function CSER {
       set x1 to min(period * alpha, x0 + dx).
       set f1 to anomaly_eq(x1).
     }
-    else if x0 - dx > x1 {
+    else if x0 - dx > 0 {
       set x1 to x0 - dx.
       set f1 to anomaly_eq(x1).
     }

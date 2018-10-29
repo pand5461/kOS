@@ -109,8 +109,6 @@ function minimize_powell {
     print fcur.
     set x0 to xmin.
     set f0 to fcur.
-    //wait until rcs.
-    //rcs off.
   }
 
   return xmin.

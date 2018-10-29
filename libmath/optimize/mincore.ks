@@ -2,36 +2,30 @@
 require("libmath", "mglobals").
 
 function min_bracket {
-  parameter fn, x0, direction to 1.
-  // direction > 0: search for x > x0
-  // direction < 0: search for x < x0
-  // direction = 0: unconstrained search
+  parameter fn, x0, dx0 to 1.
+  // search in direction from x0 to x0 + dx0
+  // by default, in positive direction
 
   local MAXITER to 100.
   local TINY to 1e-20.
   local MAGLIMIT to 10. // how far a parabolic extrapolation step can be, compared to the default
 
-  local xlo to x0.
-  local xhi to x0.
-  local xmid to x0.
-  local xopt to x0.
   local f0 to fn(x0).
-  local flo to f0.
-  local fhi to f0.
-  local fmid to f0.
-  local fopt to f0.
-  local iter to 0.
-  local dfh to 0.
-  local dfl to 0.
-  local dxh to 0.
-  local dxl to 0.
-  local alpha to 0.
-
-  if direction > 0 {
-    set xmid to xlo + 0.1 * max(1, abs(x0)).
-    set fmid to fn(xmid).
-    set xhi to xmid + m_gold * (xmid - xlo).
-    set fhi to fn(xhi).
+  if dx0 > 0 {
+    local xlo to x0.
+    local xmid to x0 + dx0.
+    local xhi to xmid + m_gold * (xmid - xlo).
+    local xopt to x0.
+    local flo to f0.
+    local fhi to fn(xhi).
+    local fmid to fn(xmid).
+    local fopt to f0.
+    local iter to 0.
+    local dfh to 0.
+    local dfl to 0.
+    local dxh to 0.
+    local dxl to 0.
+    local alpha to 0.
     until False {
       set dxl to xmid - xlo.
       set dxh to xhi - xmid.
@@ -96,22 +90,20 @@ function min_bracket {
       print "---".
     }
   }
-  else if direction < 0 {
+  else if dx0 < 0 {
     local alt_fn to {parameter x. return fn(-x).}.
-    local nstraddle to min_bracket(alt_fn, -x0, 1).
+    local nstraddle to min_bracket(alt_fn, -x0, -dx0).
     return list(-nstraddle[0], -nstraddle[1]).
   }
   else {
     local dir to 0.
-    local dx to 0.
     local x1 to x0.
     until dir <> 0 {
-      set dx to 0.1 * (1 + abs(x1)).
-      set x1 to x1 + dx.
-      set dir to fn(x0) - fn(x1).
+      set x1 to x1 + 0.02 * (1 + abs(x1)).
+      set dir to fn(x1) - f0.
     }
-    if dir < 0 return min_bracket(fn, x1, -1).
-    else return min_bracket(fn, x0, 1).
+    if dir < 0 return min_bracket(fn, x0, x1 - x0).
+    else return min_bracket(fn, x1, x0 - x1).
   }
 }
 
@@ -179,7 +171,7 @@ function linesearch_brent {
 
       if alpha > TINY {
       // get the minimum of the parabolic fit thru xlo, xmid and xhi
-        print "Parabolic fit used".
+        //print "Parabolic fit used".
         set xcur to (xsecb + xspre + (fsecb - fspre) / (alpha * (dxl + dxh))) * 0.5.
       }
       if alpha <= TINY or xcur < xlo or xcur > xhi {
@@ -215,8 +207,8 @@ function linesearch_brent {
       set fbest to fcur.
     }
     else {
-      print "no improvement".
-      print xlo + " " + xhi + " " + xcur.
+      //print "no improvement".
+      //print xlo + " " + xhi + " " + xcur.
       if xcur < xbest { set xlo to xcur. }
       else { set xhi to xcur. }
       if (fcur <= fsecb) or (xsecb = xbest) {
@@ -230,8 +222,8 @@ function linesearch_brent {
         set fspre to fcur.
       }
     }
-    print "Iteration " + niter + ". Current best: " + xbest.
-    print xlo + "  " + xhi.
+    //print "Iteration " + niter + ". Current best: " + xbest.
+    //print xlo + "  " + xhi.
     set dx to xhi - xlo.
     set xmid to xlo + dx / 2.
     set atol to rtol * (1 + abs(xmid)).
@@ -242,6 +234,6 @@ function linesearch_brent {
       break.
     }
   }
-  print fcur.
+  print fbest.
   return xbest.
 }

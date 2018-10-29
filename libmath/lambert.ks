@@ -11,6 +11,7 @@ require("libmath/zeros", "ridders").
 function lambert {
  // Following: Gooding, A procedure for the solution of Lambert's orbital boundary-value problem, Celestial Mechanics and Astronomy 48 (1990), 145-165
  // Lancaster and Blanchard, A unified form of Lambert's theorem, NASA Technical Note D-5368
+ // Izzo, Revisiting Lambert's problem, DOI 10.1007/s10569-014-9587-y
  // PRG = if the transfer is prograde relative to the base plane
   parameter r0, r1, dt, mu, prg to 1, tol to 1e-15, utol to 5*tol.
 
@@ -23,7 +24,7 @@ function lambert {
   if alpha < 0 {
     set psi to 360 - psi.
   }
-  print psi.
+  //print psi.
 
   local r0m to r0:mag.
   local r1m to r1:mag.
@@ -34,19 +35,16 @@ function lambert {
   local n to m - 2 * c.
 
   local tau to 8 * dt * smu / m^1.5.
-  local ssign to sign(sin(psi)).
+  local ssign to sign(180 - psi).
   local s to ssign * sqrt(n / m).
   local s2 to n / m.
   local qs3 to 4 * s2 * s.
   local s2fm1 to 2 * c / m. // 1 - s^2
-
   local tau_p to (4 - qs3) / 3.
 
   local ttype to 0. // ellipse
   if abs(tau - tau_p) < tol { set ttype to 1. } // parabola
   if tau < tau_p { set ttype to 2. } // hyperbola
-
-  local tau_me to 2 * (arccos(s) * m_dtr + s * sqrt(s2fm1)).
 
   local get_d to {
     parameter f, g.
@@ -82,23 +80,25 @@ function lambert {
     return 2 * (s * z + get_d(f, g) / y - x) / U - tau.
   }
 
-  local x0 to 1.
-  local x1 to 1.
-
-  if ttype <> 1 {
-    if tau < tau_me {
-      set x0 to tau_me * (tau_me / tau - 1).
-    }
-    else {
-      set x0 to sqrt((tau - tau_me) / (tau + 0.5 * tau_me)).
-    }
+  local tau_me to 2 * (arccos(s) * M_DtR + s * sqrt(s2fm1)).
+  local x0 to 0.
+  if tau < tau_p {
+    set x0 to 2.5 * tau_p * (tau_p - tau) / (tau * (1 - s^5)) + 1.
   }
+  else if tau < tau_me {
+    set x0 to (tau - tau_me) / (tau_p - tau_me).
+  }
+  else {
+    set x0 to (tau_me / tau)^(2/3) - 1.
+  }
+  local x1 to 1.
+  local tof1 to tau_p - tau.
 
   local tof0 to tof(x0).
   if ttype = 0 {
     if tof0 < 0 {
       set x1 to (x0 - 1) / 2.
-      local tof1 to tof(x1).
+      set tof1 to tof(x1).
       until tof1 >= 0 {
         set tof0 to tof1.
         set x0 to x1.
@@ -110,7 +110,7 @@ function lambert {
   else if ttype = 2 {
     if tof0 > 0 {
       set x1 to x0 * 2.
-      local tof1 to tof(x1).
+      set tof1 to tof(x1).
       until tof1 <= 0 {
         set tof0 to tof1.
         set x0 to x1.
@@ -120,7 +120,7 @@ function lambert {
     }
   }
 
-  local x to solv_ridders(tof@, x0, x1, tol).
+  local x to solv_ridders(tof@, x0, x1, tol, tof0, tof1).
   local z to sqrt(s2 * x * x + s2fm1).
   local gamma to 0.5 * smu * sqrt(m).
   local rho to 0.

@@ -3,12 +3,14 @@ require("libmath", "mglobals").
 
 function sinh {
   parameter x.
-  return 0.5 * (m_e^x - m_e^(-x)).
+  local y to M_E^x.
+  return 0.5 * (y - 1 / y).
 }
 
 function cosh {
   parameter x.
-  return 0.5 * (m_e^x + m_e^(-x)).
+  local y to M_E^x.
+  return 0.5 * (y + 1 / y).
 }
 
 function tanh {
