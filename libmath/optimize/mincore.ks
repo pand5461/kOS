@@ -119,8 +119,8 @@ function linesearch_brent {
     set xhi to tmp.
   }
 
-  local dx to xhi - xlo.
-  local xmid to xlo + dx / 2.
+  local dxm to (xhi - xlo) / 2.
+  local xmid to xlo + dxm.
   local atol to 0.
   local atol2 to 0.
   local xbest to xlo.
@@ -145,55 +145,50 @@ function linesearch_brent {
   local dxpre to 0.
   local dxcur to 0.
 
-  local dxl to 0.
-  local dxh to 0.
-  local dfl to 0.
-  local dfh to 0.
-  local alpha to 0.
   local niter to 1.
 
   local function use_goldsection {
-    if xbest < xmid { set xcur to xhi - CGOLD * dx. }
-    else { set xcur to xlo + CGOLD * dx. }
+    if xbest < xmid {
+      set dxpre to xhi - xbest.
+    }
+    else {
+      set dxpre to xlo - xbest.
+    }
+    set dxcur to CGOLD * dxpre.
   }
 
-  until abs(xmid - xbest) < atol2 {
+  until abs(xmid - xbest) < atol2 - dxm {
     if abs(dxpre) > atol {
-      set dxl to xbest - xsecb.
-      set dxh to xspre - xbest.
-
-      set dfl to (fbest - fsecb) / dxl.
-      set dfh to (fspre - fbest) / dxh.
-      if dxl + dxh <> 0 {
-        set alpha to (dfh - dfl) / (dxl + dxh).
+      local r to (xbest - xsecb) * (fbest - fspre).
+      local q to (xbest - xspre) * (fbest - fsecb).
+      local p to (xbest - xspre) * q - (xbest - xsecb) * r.
+      set q to 2 * (q - r).
+      if q > 0 {
+        set p to -p.
       }
-      else set alpha to 0.
-
-      if alpha > TINY {
-      // get the minimum of the parabolic fit thru xlo, xmid and xhi
-        //print "Parabolic fit used".
-        set xcur to (xsecb + xspre + (fsecb - fspre) / (alpha * (dxl + dxh))) * 0.5.
+      else {
+        set q to -q.
       }
-      if alpha <= TINY or xcur < xlo or xcur > xhi {
+      if abs(p) >= abs(0.5 * q * dxpre) or p <= q * (xlo - xbest) or p >= q * (xhi - xbest) {
         use_goldsection().
+      }
+      else {
+        set dxpre to dxcur.
+        set dxcur to p / q.
+        set xcur to xbest + dxcur.
+        if (xcur - xlo < atol2) or (xhi - xcur < atol2) {
+          set dxcur to atol * sign(xmid - xbest).
+        }
       }
     }
     else {
       use_goldsection().
     }
-    set dxpre to dxcur.
-    set dxcur to xcur - xbest.
     if abs(dxcur) < atol {
       if dxcur >= 0 set dxcur to atol.
       else set dxcur to -atol.
-      set xcur to xbest + dxcur.
     }
-    if (xcur - xlo < atol) {
-      set xcur to xlo + atol.
-    }
-    if (xhi - xcur < atol) {
-      set xcur to xhi - atol.
-    }
+    set xcur to xbest + dxcur.
     set fcur to fn(xcur).
 
     if fcur <= fbest {
@@ -224,10 +219,10 @@ function linesearch_brent {
     }
     //print "Iteration " + niter + ". Current best: " + xbest.
     //print xlo + "  " + xhi.
-    set dx to xhi - xlo.
-    set xmid to xlo + dx / 2.
+    set dxm to (xhi - xlo) / 2.
+    set xmid to xlo + dxm.
     set atol to rtol * (1 + abs(xmid)).
-    set atol2 to 2 * atol - dx / 2.
+    set atol2 to 2 * atol.
     set niter to niter + 1.
     if niter > MAXITER {
       print "WARNING: exceeded MAXITER in LINSEARCH".
