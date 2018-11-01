@@ -55,28 +55,27 @@ function minimize_powell {
   }
 
   print search_vecs.
-  until 2 * abs(df) < ftol {
+  until 2 * df < ftol {
     local fcur to f0.
     local maxdf to 0.
     local imax to 0.
     local svec to search_vecs:iterator.
-    print svec:index.
     until not svec:next() {
       local optfn to {
         parameter x.
-        local arg to saxpy(x, svec:value, xmin).
-        return fn(arg).
+        return fn(saxpy(x, svec:value, xmin)).
       }.
       local straddle to min_bracket(optfn, 0, 0).
       set xmin to saxpy(linesearch_brent(optfn, straddle[0], straddle[1], rtol), svec:value, xmin).
       local f1 to fn(xmin).
-      local df1 to abs(f1 - fcur).
+      local df1 to fcur - f1.
       set fcur to f1.
-      if abs(df1) > maxdf { set maxdf to abs(df1). set imax to svec:index. }
+      if df1 > maxdf { set maxdf to df1. set imax to svec:index. }
     }
     set svec to saxpy(-1, x0, xmin).
     local xave to saxpy (1, xmin, svec).
     local fe to fn(xave).
+    local dfe to f0 - fe.
 
     local snorm to 0.
     set xnorm to 0.
@@ -90,9 +89,9 @@ function minimize_powell {
     set snorm to sqrt(snorm).
     set d_last to snorm.
     set xnorm to sqrt(xnorm).
-    set atol to rtol * (1 + xnorm).
+    // set atol to rtol * (1 + xnorm).
     // weird heuristics from Powell's method
-    if fe < f0 and 2 * (f0 - 2 * fcur + fe) * ((f0 - fcur) - maxdf)^2 < (f0 - fe)^2 * maxdf {
+    if dfe < 0 and 2 * (f0 - 2 * fcur + fe) * ((f0 - fcur) - maxdf)^2 < dfe * dfe * maxdf {
       local optfn to { parameter x. return fn(saxpy(x, svec, xmin)). }.
       local straddle to min_bracket(optfn, 0, 0).
       set d_last to linesearch_brent(optfn, straddle[0], straddle[1], rtol).
@@ -102,8 +101,12 @@ function minimize_powell {
       search_vecs:remove(imax).
       search_vecs:add(svec).
     }
-    set df to fcur - f0.
-    set ftol to rtol * (1 + (abs(f0) + abs(fcur)) / 2).
+    if fe < fcur {
+      set xmin to xave.
+      set fcur to fe.
+    }
+    set df to f0 - fcur.
+    set ftol to rtol * (1 + abs(f0) + abs(fcur)).
     print svec.
     print xmin.
     print fcur.
