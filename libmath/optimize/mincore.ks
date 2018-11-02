@@ -8,7 +8,7 @@ function min_bracket {
 
   local MAXITER to 100.
   local TINY to 1e-20.
-  local MAGLIMIT to 10. // how far a parabolic extrapolation step can be, compared to the default
+  local MAGLIMIT to 2. // how far a parabolic extrapolation step can be, compared to the default
 
   local f0 to fn(x0).
   if dx0 > 0 {
@@ -41,7 +41,8 @@ function min_bracket {
 
       if alpha > TINY {
         // get the minimum of the parabolic fit thru xlo, xmid and xhi
-        set xopt to (xmid + xhi + dfh / alpha) * 0.5.
+        set xopt to (xmid + xhi - dfh / alpha) * 0.5.
+        //print xopt.
         local dxo to xopt - xhi.
         if xopt > xlo and dxo < 0 {
           set fopt to fn(xopt).
@@ -100,7 +101,7 @@ function min_bracket {
     local dir to 0.
     local x1 to x0.
     until dir <> 0 {
-      set x1 to x1 + 0.05 * (1 + abs(x1)).
+      set x1 to x1 + 0.02 * (1 + abs(x1)).
       set dir to fn(x1) - f0.
     }
     if dir < 0 return min_bracket(fn, x0, x1 - x0).
@@ -179,16 +180,18 @@ function linesearch_brent {
       else {
         set q to -q.
       }
-      if abs(p) >= abs(0.5 * q * dxpre) or p <= q * (xlo - xbest) or p >= q * (xhi - xbest) {
-      //if df2 <= 0 or abs(df) >= abs(0.5 * df2 * dxpre) or df <= df2 * (xlo - xbest) or df >= df2 * (xhi - xbest) {
+      //if abs(p) >= abs(0.5 * q * dxpre) or p <= q * (xlo - xbest) or p >= q * (xhi - xbest) {
+      if q = 0 {
         use_goldsection().
       }
       else {
-        set dxpre to dxcur.
-        set dxcur to p / q. //-df / df2.
-        set xcur to xbest + dxcur.
-        if (xcur - xlo < atol2) or (xhi - xcur < atol2) {
-          set dxcur to atol * sign(xmid - xbest).
+        local dxtry to p / q. //-df / df2.
+        if abs(dxtry) > 0.5 * abs(dxpre) or dxtry <= xlo + atol2 - xbest or dxtry >= xhi - atol2 - xbest {
+          use_goldsection().
+        }
+        else {
+          set dxpre to dxcur.
+          set dxcur to dxtry.
         }
       }
     }

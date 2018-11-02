@@ -46,6 +46,7 @@ function minimize_powell {
   local xnorm to 0.
   local first_iter to True.
   local atol to rtol * xnorm.
+  local stol to sqrt(rtol).
   local d_last to 1.
 
   until not iter:next() {
@@ -66,7 +67,7 @@ function minimize_powell {
         return fn(saxpy(x, svec:value, xmin)).
       }.
       local straddle to min_bracket(optfn, 0, 0).
-      set xmin to saxpy(linesearch_brent(optfn, straddle[0], straddle[1], rtol), svec:value, xmin).
+      set xmin to saxpy(linesearch_brent(optfn, straddle[0], straddle[1], stol), svec:value, xmin).
       local f1 to fn(xmin).
       local df1 to fcur - f1.
       set fcur to f1.
@@ -94,7 +95,7 @@ function minimize_powell {
     if dfe < 0 and 2 * (f0 - 2 * fcur + fe) * ((f0 - fcur) - maxdf)^2 < dfe * dfe * maxdf {
       local optfn to { parameter x. return fn(saxpy(x, svec, xmin)). }.
       local straddle to min_bracket(optfn, 0, 0).
-      set d_last to linesearch_brent(optfn, straddle[0], straddle[1], rtol).
+      set d_last to linesearch_brent(optfn, straddle[0], straddle[1], stol).
       set xmin to saxpy(d_last, svec, xmin).
       set fcur to fn(xmin).
       set d_last to d_last * snorm.
