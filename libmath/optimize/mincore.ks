@@ -1,6 +1,11 @@
 @lazyglobal off.
 require("libmath", "mglobals").
 
+local function straddlelex {
+  parameter xlo, flo, xhi, fhi, xbest, fbest, dir to 1.
+  return lex("xlo", dir * xlo, "flo", flo, "xhi", dir *  xhi, "fhi", fhi, "xbest", dir * xbest, "fbest", fbest).
+}
+
 function min_bracket {
   parameter fn, x0, dx0 to 1.
   // search in direction from x0 to x0 + dx0
@@ -10,16 +15,21 @@ function min_bracket {
   local TINY to 1e-20.
   local MAGLIMIT to 2. // how far a parabolic extrapolation step can be, compared to the default
 
-  local f0 to fn(x0).
-  if dx0 > 0 {
+  local function bracket_fwd {
+    parameter fn, x0, dx0, f0 to False, fmid to False.
     set dx0 to max(dx0, (1 + abs(x0)) * 1e-4).
+    if not f0 {
+      set f0 to fn(x0).
+    }
     local xlo to x0.
     local xmid to x0 + dx0.
     local xhi to xmid + 2 * dx0.
     local xopt to x0.
     local flo to f0.
     local fhi to fn(xhi).
-    local fmid to fn(xmid).
+    if not fmid {
+      set fmid to fn(xmid).
+    }
     local fopt to f0.
     local iter to 0.
     local dfh to 0.
@@ -35,7 +45,7 @@ function min_bracket {
       set dfl to (fmid - flo) / dxl.
       set dfh to (fhi - fmid) / dxh.
       if (dfl < 0) and (dfh > 0) {
-        return list(xlo, xhi).
+        return straddlelex(xlo, flo, xhi, fhi, xmid, fmid).
       }
       set alpha to (dfh - dfl) / dx.
 
@@ -47,13 +57,13 @@ function min_bracket {
         if xopt > xlo and dxo < 0 {
           set fopt to fn(xopt).
           if (xopt < xmid) and (fopt <= flo) and (fopt <= fmid) {
-            return list(xlo, xmid).
+            return straddlelex(xlo, flo, xmid, fmid, xopt, fopt).
           }
           if (xopt > xmid) and (fopt <= fmid) and (fopt <= fhi) {
-            return list(xmid, xhi).
+            return straddlelex(xmid, fmid, xhi, fhi, xopt, fopt).
           }
           if (fopt <= flo) and (fopt <= fhi) {
-            return list(xlo, xhi).
+            return straddlelex(xlo, flo, xhi, fhi, xopt, fopt).
           }
           set xopt to xhi + 2 * dxh.
           set fopt to fn(xopt).
@@ -92,48 +102,86 @@ function min_bracket {
       print "---".
     }
   }
+  if dx0 > 0 {
+    return bracket_fwd(fn, x0, dx0).
+  }
   else if dx0 < 0 {
     local alt_fn to {parameter x. return fn(-x).}.
-    local nstraddle to min_bracket(alt_fn, -x0, -dx0).
-    return list(-nstraddle[0], -nstraddle[1]).
+    return bracket_fwd(alt_fn, -x0, -dx0, -1).
   }
   else {
+    local f0 to fn(x0).
     local dir to 0.
     local x1 to x0.
+    local f1 to 0.
     until dir <> 0 {
       set x1 to x1 + 0.02 * (1 + abs(x1)).
-      set dir to fn(x1) - f0.
+      set f1 to fn(x1).
+      set dir to f1 - f0.
     }
-    if dir < 0 return min_bracket(fn, x0, x1 - x0).
-    else return min_bracket(fn, x1, x0 - x1).
+    if dir < 0 return bracket_fwd(fn, x0, x1 - x0, f0, f1).
+    else return bracket_fwd(fn, x1, x0 - x1, f1, f0).
   }
 }
 
 function linesearch_brent {
-  parameter fn, xlo, xhi, rtol to 4e-8.
+  // straddle is a lexicon which has keys "xlo" and "xhi", optionally "flo" and "fhi" and a pair ("xbest", "fbest")
+  parameter fn, straddle, rtol to 4e-8, maxpinterp to 40.
 
+  set rtol to max(rtol, 4e-8).
   local CGOLD to 1 - 1 / M_GOLD.
   local MAXITER to 40.
   local TINY to 1e-20.
+  local xlo to straddle["xlo"].
+  local xhi to straddle["xhi"].
+  local flo to 0.
+  local fhi to 0.
+  if straddle:haskey("flo") {
+    set flo to straddle["flo"].
+  }
+  else {
+    set flo to fn(xlo).
+  }
+ if straddle:haskey("fhi") {
+    set flo to straddle["fhi"].
+  }
+  else {
+    set flo to fn(xlo).
+  }
   if (xlo > xhi) {
     local tmp to xlo.
     set xlo to xhi.
     set xhi to tmp.
+    set tmp to flo.
+    set flo to fhi.
+    set fhi to tmp.
   }
 
   local dxm to (xhi - xlo) / 2.
   local xmid to xlo + dxm.
-  local atol to 0.
-  local atol2 to 0.
+  local atol to rtol * (1 + abs(xmid)).
+  local atol2 to 2 * atol.
   local xbest to xlo.
   local xsecb to xhi.
   local xspre to xhi.
-  local flo to fn(xlo).
-  local fhi to fn(xhi).
   local fbest to flo.
   local fsecb to fhi.
   local fspre to fhi.
-  if fhi < flo {
+  local dxpre to 0.
+  if straddle:haskey("xbest") {
+    set xbest to straddle["xbest"].
+    set fbest to straddle["fbest"].
+    if fhi < flo {
+      set fspre to flo.
+      set xspre to xlo.
+    }
+    else {
+      set fsecb to flo.
+      set xsecb to xlo.
+    }
+    set dxpre to max(xbest - xlo, xhi - xbest).
+  }
+  else if fhi < flo {
     set fbest to fhi.
     set fsecb to flo.
     set fspre to flo.
@@ -144,12 +192,12 @@ function linesearch_brent {
   }
   local fcur to fbest.
   local xcur to xbest.
-  local dxpre to 0.
-  local dxcur to 0.
+  local dxcur to dxpre.
 
   local niter to 1.
   local df2 to 0.
   local df to 0.
+  local npinterp to 1.
 
   local function use_goldsection {
     print "Golden section search used".
@@ -186,10 +234,12 @@ function linesearch_brent {
       }
       else {
         local dxtry to p / q. //-df / df2.
+        print "Parabolic approximation: " + (xbest + dxtry).
         if abs(dxtry) > 0.5 * abs(dxpre) or dxtry <= xlo + atol2 - xbest or dxtry >= xhi - atol2 - xbest {
           use_goldsection().
         }
         else {
+          set npinterp to npinterp + 1.
           set dxpre to dxcur.
           set dxcur to dxtry.
         }
@@ -239,6 +289,10 @@ function linesearch_brent {
     set atol to rtol * (1 + abs(xmid)).
     set atol2 to 2 * atol.
     set niter to niter + 1.
+    if npinterp > maxpinterp {
+      print "Number of parabolic fits exceeded".
+      break.
+    }
     if niter > MAXITER {
       print "WARNING: exceeded MAXITER in LINSEARCH".
       break.
