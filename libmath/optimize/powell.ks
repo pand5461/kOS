@@ -66,11 +66,11 @@ function minimize_powell {
         parameter x.
         return fn(saxpy(x, svec:value, xmin)).
       }.
-      local straddle to min_bracket(optfn, 0, 0).
-      set xmin to saxpy(linesearch_brent(optfn, straddle, stol, 3), svec:value, xmin).
-      local f1 to fn(xmin).
-      local df1 to fcur - f1.
-      set fcur to f1.
+      local straddle to min_bracket(optfn, 0, 0, fcur).
+      local minpoint to linesearch_brent(optfn, straddle, stol, 3).
+      set xmin to saxpy(minpoint["x"], svec:value, xmin).
+      local df1 to fcur - minpoint["f"].
+      set fcur to minpoint["f"].
       if df1 > maxdf { set maxdf to df1. set imax to svec:index. }
     }
     set svec to saxpy(-1, x0, xmin).
@@ -94,11 +94,11 @@ function minimize_powell {
     // weird heuristics from Powell's method
     if dfe < 0 and 2 * (f0 - 2 * fcur + fe) * ((f0 - fcur) - maxdf)^2 < dfe * dfe * maxdf {
       local optfn to { parameter x. return fn(saxpy(x, svec, xmin)). }.
-      local straddle to min_bracket(optfn, 0, 0).
+      local straddle to min_bracket(optfn, 0, 0, fcur).
       set d_last to linesearch_brent(optfn, straddle, stol, 3).
-      set xmin to saxpy(d_last, svec, xmin).
-      set fcur to fn(xmin).
-      set d_last to d_last * snorm.
+      set xmin to saxpy(d_last["x"], svec, xmin).
+      set fcur to d_last["f"].
+      //set d_last to d_last["x"] * snorm.
       search_vecs:remove(imax).
       search_vecs:add(svec).
     }
