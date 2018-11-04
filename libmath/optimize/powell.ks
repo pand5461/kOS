@@ -25,16 +25,16 @@ function minimize_powell {
     return ans.
   }
 
-  function close {
-    parameter x, y, rtol.
-    local ix to x:iterator.
-    local iy to y:iterator.
-    until not ix:next {
-      iy:next.
-      if abs(ix:value - iy:value) > rtol * (1 + abs(iy:value)) return False.
-    }
-    return True.
-  }
+//  function close {
+//    parameter x, y, rtol.
+//    local ix to x:iterator.
+//    local iy to y:iterator.
+//    until not ix:next {
+//      iy:next.
+//      if abs(ix:value - iy:value) > rtol * (1 + abs(iy:value)) return False.
+//    }
+//    return True.
+//  }
 
   local f0 to fn(x0).
   local df to 0.
@@ -78,18 +78,18 @@ function minimize_powell {
     local fe to fn(xave).
     local dfe to f0 - fe.
 
-    local snorm to 0.
-    set xnorm to 0.
-    local isv to svec:iterator.
-    local ix to xmin:iterator.
-    until not isv:next {
-      ix:next.
-      set snorm to snorm + isv:value * isv:value.
-      set xnorm to xnorm + ix:value * ix:value.
-    }
-    set snorm to sqrt(snorm).
-    set d_last to snorm.
-    set xnorm to sqrt(xnorm).
+//    local snorm to 0.
+//    set xnorm to 0.
+//    local isv to svec:iterator.
+//    local ix to xmin:iterator.
+//    until not isv:next {
+//      ix:next.
+//      set snorm to snorm + isv:value * isv:value.
+//      set xnorm to xnorm + ix:value * ix:value.
+//    }
+//    set snorm to sqrt(snorm).
+//    set d_last to snorm.
+//    set xnorm to sqrt(xnorm).
     // set atol to rtol * (1 + xnorm).
     // weird heuristics from Powell's method
     if dfe < 0 and 2 * (f0 - 2 * fcur + fe) * ((f0 - fcur) - maxdf)^2 < dfe * dfe * maxdf {
@@ -108,7 +108,7 @@ function minimize_powell {
     }
     set df to f0 - fcur.
     set ftol to rtol * (1 + abs(f0) + abs(fcur)).
-    print svec.
+    //print svec.
     print xmin.
     print fcur.
     set x0 to xmin.

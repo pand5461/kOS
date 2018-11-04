@@ -132,7 +132,6 @@ function min_bracket {
 function linesearch_brent {
   // straddle is a lexicon which has keys "xlo" and "xhi", optionally "flo" and "fhi" and a pair ("xbest", "fbest")
   parameter fn, straddle, rtol to 4e-8, maxpinterp to 40.
-  print straddle.
 
   set rtol to max(rtol, 4e-8).
   local CGOLD to 1 - 1 / M_GOLD.
@@ -206,7 +205,7 @@ function linesearch_brent {
   local npinterp to 1.
 
   local function use_goldsection {
-    print "Golden section search used".
+    //print "Golden section search used".
     if xbest < xmid {
       set dxpre to xhi - xbest.
     }
@@ -234,13 +233,12 @@ function linesearch_brent {
       else {
         set q to -q.
       }
-      //if abs(p) >= abs(0.5 * q * dxpre) or p <= q * (xlo - xbest) or p >= q * (xhi - xbest) {
       if q = 0 {
         use_goldsection().
       }
       else {
         local dxtry to p / q. //-df / df2.
-        print "Parabolic approximation: " + (xbest + dxtry).
+        //print "Parabolic approximation: " + (xbest + dxtry).
         if abs(dxtry) > 0.5 * abs(dxpre) or dxtry <= xlo + atol2 - xbest or dxtry >= xhi - atol2 - xbest {
           use_goldsection().
         }
@@ -288,15 +286,15 @@ function linesearch_brent {
         set fspre to fcur.
       }
     }
-    print "Iteration " + niter + ". Current best: " + xbest + " " + fbest.
-    print xlo + "  " + xhi.
+    //print "Iteration " + niter + ". Current best: " + xbest + " " + fbest.
+    //print xlo + "  " + xhi.
     set dxm to (xhi - xlo) / 2.
     set xmid to xlo + dxm.
     set atol to rtol * (1 + abs(xmid)).
     set atol2 to 2 * atol.
     set niter to niter + 1.
     if npinterp > maxpinterp {
-      print "Number of parabolic fits exceeded".
+      //print "Number of parabolic fits exceeded".
       break.
     }
     if niter > MAXITER {
