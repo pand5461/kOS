@@ -49,13 +49,11 @@ function minimize_powell3 {
 
     // weird heuristics from Powell's method
     if dfe < 0 and 2 * (f0 - 2 * fcur + fe) * ((f0 - fcur) - maxdf)^2 < dfe * dfe * maxdf {
-      print "Updating the direction set".
-      local optfn to { parameter x. return fn(saxpy(x, svec, xmin)). }.
+      local optfn to { parameter x. return fn(x * svec + xmin). }.
       local straddle to min_bracket(optfn, 0, 0, fcur).
       set d_last to linesearch_brent(optfn, straddle, stol, 3).
       set xmin to d_last["x"] * svec + xmin.
       set fcur to d_last["f"].
-      //set d_last to d_last["x"] * snorm.
       search_vecs:remove(imax).
       search_vecs:add(svec).
     }
