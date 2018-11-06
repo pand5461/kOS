@@ -138,5 +138,5 @@ function lambert {
 
   local vt to gamma * ss * (z + s * x).
 
-  return lexicon("v0", vr0 * unir0 - vt / r0m * vcrs(alphavec, unir0), "v1", vr1 * unir1 - vt / r1m * vcrs(alphavec, unir1)).
+  return lexicon("v0", vr0 * unir0 + vt / r0m * vcrs(alphavec, unir0), "v1", vr1 * unir1 + vt / r1m * vcrs(alphavec, unir1)).
 }

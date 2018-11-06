@@ -41,18 +41,17 @@ function CSER {
   local alpha to 2 - v2s.
   local armd1 to v2s - 1.
   local rvr0s to vdot(r0, v0) / sqrt(mu * rscale).
-  local ecc to sqrt(1 - alpha * (v2s - rvr0s * rvr0s)).
 
-  if (not x0) {
-    if alpha > 0 {
-      set x0 to dts * alpha.
+  local period to 2 * M_PI / abs(alpha)^1.5.
+  if alpha > 0 {
+    until dts > 0 {
+      set dts to dts + period.
     }
-    else {
-      local s to sign(dts).
-      local r to sqrt(-1 / alpha).
-      set x0 to s * r * ln(- 2 * dts * alpha / (r0v0s + s * r * (1 - alpha))).
+    until dts <= period {
+      set dts to dts - period.
     }
   }
+
 
   local SnC to SnC_ell@.
   if alpha < 0 {
@@ -67,13 +66,16 @@ function CSER {
     return x2 * (rvr0s * SCz["C"] + x * armd1 * SCz["S"]) + x - dts.
   }.
 
-  local period to 2 * M_PI / abs(alpha)^1.5.
-  if alpha > 0 {
-    until dts > 0 {
-      set dts to dts + period.
+  local xam to dts * alpha.
+
+  if (not x0) {
+    if alpha > 0 {
+      set x0 to xam.
     }
-    until dts < period {
-      set dts to dts - period.
+    else {
+      local s to sign(dts).
+      local r to sqrt(-1 / alpha).
+      set x0 to s * r * ln(-2 * dts * alpha / (r0v0s + s * r * (1 - alpha))).
     }
   }
 
@@ -82,13 +84,14 @@ function CSER {
   local f1 to -dts.
 
   if alpha > 0 { // elliptic orbit
+    local ecc to sqrt(1 - alpha * (v2s - rvr0s * rvr0s)).
     local dx to 2.01 * ecc / sqrt(alpha).
     if f0 < 0 {
-      set x1 to min(period * alpha, x0 + dx).
+      set x1 to min(1.01 * period * alpha, xam + dx).
       set f1 to anomaly_eq(x1).
     }
-    else if x0 - dx > 0 {
-      set x1 to x0 - dx.
+    else if xam > dx {
+      set x1 to xam - dx.
       set f1 to anomaly_eq(x1).
     }
   }

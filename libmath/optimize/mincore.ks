@@ -147,11 +147,11 @@ function linesearch_brent {
   else {
     set flo to fn(xlo).
   }
- if straddle:haskey("fhi") {
+  if straddle:haskey("fhi") {
     set flo to straddle["fhi"].
   }
   else {
-    set flo to fn(xlo).
+    set fhi to fn(xhi).
   }
   if (xlo > xhi) {
     local tmp to xlo.
