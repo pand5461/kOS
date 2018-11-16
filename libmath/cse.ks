@@ -28,7 +28,7 @@ function SnC_hyp {
 
 // Conic State Extrapolation Routine
 function CSER {
-  parameter r0, v0, dt, mu to body:mu, x0 to False, tol to 4e-16.
+  parameter r0, v0, dt, mu to body:mu, x0 to False, tol to 1e-12.
   if dt = 0 {
     return list(r0, v0, 0).
   }
@@ -66,16 +66,16 @@ function CSER {
     return x2 * (rvr0s * SCz["C"] + x * armd1 * SCz["S"]) + x - dts.
   }.
 
-  local xam to dts * alpha.
+  local x to dts * alpha.
 
   if (not x0) {
     if alpha > 0 {
-      set x0 to xam.
+      set x0 to x.
     }
     else {
       local s to sign(dts).
       local r to sqrt(-1 / alpha).
-      set x0 to s * r * ln(-2 * dts * alpha / (r0v0s + s * r * (1 - alpha))).
+      set x0 to s * r * ln(-2 * dts * alpha / (rvr0s + s * r * (1 - alpha))).
     }
   }
 
@@ -85,19 +85,19 @@ function CSER {
 
   if alpha > 0 { // elliptic orbit
     local ecc to sqrt(1 - alpha * (v2s - rvr0s * rvr0s)).
-    local dx to 2.01 * ecc / sqrt(alpha).
+    local dx to max(2.01 * ecc / sqrt(alpha), tol * abs(x)).
     if f0 < 0 {
-      set x1 to min(1.01 * period * alpha, xam + dx).
+      set x1 to min(1.01 * period * alpha, x + dx).
       set f1 to anomaly_eq(x1).
     }
-    else if xam > dx {
-      set x1 to xam - dx.
+    else if x > dx {
+      set x1 to x - dx.
       set f1 to anomaly_eq(x1).
     }
   }
   else { // hyperbolic orbit
     local dx to -x0.
-    until f1 * f0 < 0 {
+    until sign(f1) * sign(f0) < 0 {
       set dx to dx * 2.
       set x0 to x1.
       set f0 to f1.
@@ -106,7 +106,14 @@ function CSER {
     }
   }
 
-  local x to solv_ridders(anomaly_eq, x0, x1, tol, f0, f1).
+  if f0 * f1 > 0 {
+    print x0.
+    print x.
+    print x1.
+    print f0.
+    print f1.
+  }
+  set x to solv_ridders(anomaly_eq, x0, x1, tol, f0, f1).
   local x2 to x * x.
   local z to alpha * x2.
   local SCz to SnC(z).
@@ -123,7 +130,7 @@ function CSER {
 }
 
 function GetStateFromOrbit {
-  parameter torb, utime, x to 0.
+  parameter torb, utime, x to False.
 
   local mu to torb:body:mu.
   local sma to abs(torb:semimajoraxis).
