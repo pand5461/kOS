@@ -26,9 +26,12 @@ function gen_alt_stop {
     local rv is list(pos0, vel0).
     local mnow is m0.
     local tnow is 0.
+    local alt_now to 0.
     until rv[1]:sqrmagnitude < 1e-2 {
       local rsrf is rv[0].
       local vsrf is rv[1].
+      local rmag2 is rsrf:sqrmagnitude.
+      local rmag is sqrt(rmag2).
       local gvec is -mu * rsrf / rsrf:sqrmagnitude^1.5.
       local t_est is mnow * (1 - M_E^(-vsrf:mag / vex)) / flow.
       local dv_est is (vsrf + t_est * gvec):mag.
@@ -39,11 +42,13 @@ function gen_alt_stop {
       set rv to rk4(rv, tnow, accfn, dt, nrksteps).
       set mnow to mfin.
       set tnow to tnow + t_est.
+      local req is V(rv[0]:x, rv[0]:y, 0).
+      local stop_lat is arctan(rv[0]:z / req:mag).
+      local stop_lng is arctan2(req:y, req:x).
+      set alt_now to rmag - (centerbody:geopositionlatlng(stop_lat, stop_lng):terrainheight + offset) - rbody.
+      if alt_now < 0 {return alt_now.} // return altitude immediately if it's negative: don't have to bother about the exact value
     }
-    local req is V(rv[0]:x, rv[0]:y, 0).
-    local stop_lat is arctan(rv[0]:z / req:mag).
-    local stop_lng is arctan2(req:y, req:x).
-    return rv[0]:mag - (centerbody:geopositionlatlng(stop_lat, stop_lng):terrainheight + offset) - rbody.
+    return alt_now.
   }.
 }
 
@@ -69,6 +74,8 @@ function hoverslam_thrust_simple {
 
 ag1 off.
 
+clearscreen.
+print "Press AG1 to activate suicide burn calculation.".
 wait until ag1.
 
 set config:ipu to 2000.
@@ -92,7 +99,7 @@ local hoverslam_thrustlevel is gen_hoverslam_thrustlevel(body, tmax, vex, ctrlof
 
 local desired_thrustlevel is 0.97.
 
-wait until verticalspeed < -10.
+wait until verticalspeed < -2.
 
 clearscreen.
 local m0 is mass.
@@ -110,7 +117,8 @@ until stopalt(pos0, vel0, m0, hstl) < 0 {
   set hstl to hstl*0.9.
 }
 
-set hstl to hstl/0.95.
+local tl_old is hstl.
+set hstl to hstl/0.85.
 
 until hstl >= desired_thrustlevel {
   wait 0.
@@ -121,7 +129,9 @@ until hstl >= desired_thrustlevel {
   set pos0 to toIRF(pos0, xaxis).
   set vel0 to toIRF(vel0, xaxis).
 
-  set hstl to hoverslam_thrustlevel(pos0, vel0, m0, hstl*0.95, hstl*1.5).
+  local tl_new to hoverslam_thrustlevel(pos0, vel0, m0, hstl*0.85, hstl*1.5).
+  set hstl to tl_new * tl_new / tl_old.
+  set tl_old to tl_new.
   print "Needed thrustlevel: " + round(hstl, 4) + "     " at (0, 5).
 }
 
@@ -146,6 +156,7 @@ lock steering to lookdirup(-velocity:surface - body:position:normalized, facing:
 
 until verticalspeed > 0 {
   set hstl to hoverslam_thrust_simple(ctrlpart_alt(), verticalspeed) / (tmax * vdot(facing:vector, up:vector)).
+  print "Needed thrustlevel: " + round(hstl, 4) + "     " at (0, 5).
   wait 0.
 }
 
